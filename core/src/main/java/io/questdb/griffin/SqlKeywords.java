@@ -95,6 +95,17 @@ public class SqlKeywords {
                 && (tok.charAt(i) | 32) == 'd';
     }
 
+    public static boolean isAnyKeyword(CharSequence tok) {
+        if (tok.length() != 3) {
+            return false;
+        }
+
+        int i = 0;
+        return (tok.charAt(i++) | 32) == 'a'
+                && (tok.charAt(i++) | 32) == 'n'
+                && (tok.charAt(i) | 32) == 'y';
+    }
+
     public static boolean isAsKeyword(CharSequence tok) {
         if (tok.length() != 2) {
             return false;
@@ -2229,6 +2240,7 @@ public class SqlKeywords {
         KEYWORDS.add("all");
         KEYWORDS.add("alter");
         KEYWORDS.add("and");
+        KEYWORDS.add("any");
         KEYWORDS.add("asc");
         KEYWORDS.add("as");
         KEYWORDS.add("attach");

@@ -38,6 +38,7 @@ import static io.questdb.griffin.SqlKeywords.*;
 
 public final class WhereClauseSymbolEstimator implements Mutable {
 
+    private static final int OP_ANY = 5;
     private static final int OP_EQUAL = 1;
     private static final int OP_IN = 2;
     private static final int OP_NOT = 3;
@@ -128,6 +129,9 @@ public final class WhereClauseSymbolEstimator implements Mutable {
             RecordMetadata metadata
     ) throws SqlException {
         switch (ops.get(node.token)) {
+            case OP_ANY:
+                analyzeAny(translator, node, metadata);
+                return true;
             case OP_IN:
                 analyzeIn(translator, node, metadata);
                 return true;
@@ -148,6 +152,41 @@ public final class WhereClauseSymbolEstimator implements Mutable {
                 return false;
         }
     }
+
+     private void analyzeAny(
+            AliasTranslator translator,
+            ExpressionNode node,
+            RecordMetadata metadata
+    ) throws SqlException {
+        if (node.paramCount < 2) {
+            return;
+        }
+
+        ExpressionNode col = node.paramCount < 3 ? node.lhs : node.args.getLast();
+        if (col.type != ExpressionNode.LITERAL) {
+            return;
+        }
+
+        CharSequence column = translator.translateAlias(col.token);
+        int columnIndex = metadata.getColumnIndexQuiet(column);
+        if (columnIndex == -1) {
+            throw SqlException.invalidColumn(node.position, node.token);
+        }
+
+        int keyIndex = columnIndexesToListIndexes.keyIndex(columnIndex);
+        if (keyIndex > -1) {
+            return;
+        }
+
+        if (node.rhs != null && node.rhs.type == ExpressionNode.QUERY) {
+            // give up in sym in (select ...) case
+            giveUp();
+            return;
+        }
+
+        int listIndex = columnIndexesToListIndexes.valueAt(keyIndex);
+        symbolCounts.increment(listIndex, node.paramCount - 1);
+    } 
 
     private void analyzeEquals(
             AliasTranslator translator,
@@ -292,6 +331,7 @@ public final class WhereClauseSymbolEstimator implements Mutable {
     }
 
     static {
+        ops.put("any", OP_ANY);
         ops.put("=", OP_EQUAL);
         ops.put("in", OP_IN);
         ops.put("not", OP_NOT);

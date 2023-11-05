@@ -35,6 +35,7 @@ public class Constants {
             "all",
             "alter",
             "and",
+            "any",
             "as",
             "asc",
             "asof",
