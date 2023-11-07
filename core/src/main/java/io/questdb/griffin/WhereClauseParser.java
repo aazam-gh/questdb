@@ -255,7 +255,7 @@ public final class WhereClauseParser implements Mutable {
         try {
             return IntervalUtils.parseFloorPartialTimestamp(str);
         } catch (NumericException ignore) {
-            throw SqlException.invalidDate(position);
+            throw SqlException.invalidDate(str, position);
         }
     }
 
@@ -1277,7 +1277,7 @@ public final class WhereClauseParser implements Mutable {
             try {
                 lo = parseFullOrPartialDate(equalsTo, compareWithNode, true);
             } catch (NumericException e) {
-                throw SqlException.invalidDate(compareWithNode.position);
+                throw SqlException.invalidDate(compareWithNode.token, compareWithNode.position);
             }
             model.intersectIntervals(lo, Long.MAX_VALUE);
             node.intrinsicValue = IntrinsicModel.TRUE;
@@ -1325,7 +1325,7 @@ public final class WhereClauseParser implements Mutable {
                 model.intersectIntervals(Long.MIN_VALUE, hi);
                 node.intrinsicValue = IntrinsicModel.TRUE;
             } catch (NumericException e) {
-                throw SqlException.invalidDate(compareWithNode.position);
+                throw SqlException.invalidDate(compareWithNode.token, compareWithNode.position);
             }
             return true;
         } else if (isFunc(compareWithNode)) {
@@ -1800,7 +1800,7 @@ public final class WhereClauseParser implements Mutable {
                     hash = GeoHashes.fromStringTruncatingNl(token, 1, len - sddLen, bits);
                 } else {
                     int bits = len - 2;
-                    if (bits <= ColumnType.GEO_HASH_MAX_BITS_LENGTH) {
+                    if (bits <= ColumnType.GEOLONG_MAX_BITS) {
                         type = ColumnType.getGeoHashTypeWithBits(bits);
                         hash = GeoHashes.fromBitStringNl(token, 2);
                     } else {

@@ -198,7 +198,7 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
     private long lastOpenPartitionTs = Long.MIN_VALUE;
     private long lastPartitionTimestamp;
     private LifecycleManager lifecycleManager;
-    private int lockFd = -1;
+    private int lockFd = -2;
     private long masterRef = 0L;
     private int metaPrevIndex;
     private final FragileCode RECOVER_FROM_TODO_WRITE_FAILURE = this::recoverFromTodoWriteFailure;
@@ -2257,7 +2257,7 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
     }
 
     public void transferLock(int lockFd) {
-        assert lockFd != -1;
+        assert lockFd > -1;
         this.lockFd = lockFd;
     }
 
@@ -4051,6 +4051,8 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
 
                     if (!ColumnType.isVariableLength(type)) {
                         MemoryCMOR primary = walColumnMemoryPool.pop();
+                        walMappedColumns.add(primary);
+                        walMappedColumns.add(null);
 
                         dFile(walPath, metadata.getColumnName(columnIndex), -1L);
                         primary.ofOffset(
@@ -4062,13 +4064,13 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
                                 CairoConfiguration.O_NONE
                         );
                         walPath.trimTo(walPathLen);
-
-                        walMappedColumns.add(primary);
-                        walMappedColumns.add(null);
                     } else {
                         sizeBitsPow2 = 3;
                         MemoryCMOR fixed = walColumnMemoryPool.pop();
                         MemoryCMOR var = walColumnMemoryPool.pop();
+
+                        walMappedColumns.add(var);
+                        walMappedColumns.add(fixed);
 
                         iFile(walPath, metadata.getColumnName(columnIndex), -1L);
                         fixed.ofOffset(
@@ -4093,9 +4095,6 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
                                 CairoConfiguration.O_NONE
                         );
                         walPath.trimTo(walPathLen);
-
-                        walMappedColumns.add(var);
-                        walMappedColumns.add(fixed);
                     }
                 } else {
                     walMappedColumns.add(null);

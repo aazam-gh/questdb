@@ -22,30 +22,38 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.analytic;
+package io.questdb.test.griffin.engine.functions.math;
 
-import io.questdb.cairo.ArrayColumnTypes;
-import io.questdb.cairo.sql.AnalyticSPI;
-import io.questdb.cairo.sql.Function;
-import io.questdb.cairo.sql.Record;
-import io.questdb.cairo.sql.RecordCursor;
-import io.questdb.griffin.engine.orderby.RecordComparatorCompiler;
-import io.questdb.std.IntList;
+import io.questdb.griffin.FunctionFactory;
+import io.questdb.griffin.SqlException;
+import io.questdb.griffin.engine.functions.math.RemIntFunctionFactory;
+import io.questdb.std.Numbers;
+import io.questdb.test.griffin.engine.AbstractFunctionFactoryTest;
+import org.junit.Test;
 
-public interface AnalyticFunction extends Function {
-    int STREAM = 1;
-    int THREE_PASS = 3;
-    int TWO_PASS = 2;
+public class RemIntFunctionFactoryTest extends AbstractFunctionFactoryTest {
+    @Test
+    public void testDivByZero() throws SqlException {
+        call(10, 0).andAssert(Numbers.INT_NaN);
+    }
 
-    void initRecordComparator(RecordComparatorCompiler recordComparatorCompiler, ArrayColumnTypes chainTypes, IntList order);
+    @Test
+    public void testLeftNan() throws SqlException {
+        call(Numbers.INT_NaN, 5).andAssert(Numbers.INT_NaN);
+    }
 
-    void pass1(Record record, long recordOffset, AnalyticSPI spi);
+    @Test
+    public void testRightNan() throws SqlException {
+        call(123, Numbers.INT_NaN).andAssert(Numbers.INT_NaN);
+    }
 
-    void pass2(Record record);
+    @Test
+    public void testSimple() throws SqlException {
+        call(10, 4).andAssert(2);
+    }
 
-    void preparePass2(RecordCursor cursor);
-
-    void reset();
-
-    void setColumnIndex(int columnIndex);
+    @Override
+    protected FunctionFactory getFunctionFactory() {
+        return new RemIntFunctionFactory();
+    }
 }
